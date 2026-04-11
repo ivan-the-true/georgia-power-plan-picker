@@ -292,6 +292,33 @@
   .save-neg { color: var(--bad); }
   .save-zero { color: var(--ink-3); }
 
+  .enroll-btn {
+    display: inline-block;
+    padding: 7px 14px;
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+  .enroll-btn:hover {
+    background: var(--accent);
+    color: var(--cream);
+  }
+  table.plans tr.winner .enroll-btn {
+    background: var(--accent);
+    color: var(--cream);
+  }
+  table.plans tr.winner .enroll-btn:hover {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
   /* Reasoning section */
   .reasoning { margin-bottom: 56px; }
   .plan-card {
@@ -419,13 +446,10 @@
   </label>
 
   <div class="help">
-    <strong>Where to get this file:</strong> Log into <a href="https://www.georgiapower.com/" target="_blank" rel="noopener">georgiapower.com</a> → My Account → My Power Usage → choose a date range (12+ months recommended) → Export. The file should have columns labeled <em>Hour</em> and <em>kWh</em>.
+    <strong>Where to get this file:</strong> Log into <a href="https://customerservice2.southerncompany.com/Billing/MyPowerUsage" target="_blank" rel="noopener">georgiapower.com</a> → <em>Billing & Payments</em> → <em>Usage</em> → click the <em>Export</em> dropdown, then select <em>Export to Excel</em> → choose your date range (12+ months recommended). The file should have columns labeled <em>Hour</em> and <em>kWh</em>.
   </div>
 
   <div class="settings" id="settings">
-    <label>Franchise fee
-      <input type="number" id="mff" value="4" min="0" max="10" step="0.5"> %
-    </label>
     <label>Analysis window
       <select id="window"></select>
     </label>
@@ -449,6 +473,7 @@
             <th>Annual cost</th>
             <th>Per month</th>
             <th>vs. default</th>
+            <th>Enroll</th>
           </tr>
         </thead>
         <tbody id="plan-rows"></tbody>
@@ -468,7 +493,7 @@
   </main>
 
   <footer>
-    <p><strong>About this tool.</strong> This is an unofficial calculator built from Georgia Power's published 2025/2026 tariff schedules and the Georgia PSC bill calculator. Rates included: basic service charge ($0.4603/day), Fuel Cost Recovery (4.59¢ summer / 4.29¢ winter per kWh), Environmental Compliance Cost Recovery (13.23% of base bill), DSM-R rider (1.22% of base bill), and a configurable Municipal Franchise Fee (default 4%). State and local sales tax (~7–8%) is excluded because it applies equally to all plans.</p>
+    <p><strong>About this tool.</strong> This is an unofficial calculator built from Georgia Power's published 2025/2026 tariff schedules and the Georgia PSC bill calculator. Rates included: basic service charge ($0.4603/day), Fuel Cost Recovery (4.59¢ summer / 4.29¢ winter per kWh), Environmental Compliance Cost Recovery (13.23% of base bill), and the DSM-R rider (1.22% of base bill). Municipal franchise fees (~3–4%) and state/local sales tax (~7–8%) are excluded because they apply equally to every plan and don't change which plan is cheapest — your real bill will be modestly higher than the totals shown here, but the ranking and the savings between plans are accurate.</p>
     <p><strong>Caveats.</strong> Plan rates change via PSC filings — verify on the <a href="https://www.georgiapower.com/residential/rate-plans.html" target="_blank">Georgia Power rate plans page</a> before switching. FlatBill and Pay-by-Day are customized per household and not modeled here. TOU plans technically use a separate Time-of-Use Fuel Cost Recovery schedule with values close to the standard FCR used here. The Smart Usage demand charge is calculated from your highest single hour each month, which assumes hourly meter granularity matches the actual 60-minute demand window.</p>
     <p><strong>Privacy.</strong> Your usage file is parsed entirely in your browser. Nothing is uploaded to any server.</p>
   </footer>
@@ -483,10 +508,17 @@ const ECCR_PCT    = 0.132343;
 const DSM_PCT     = 0.012165;
 const FCR_SUMMER  = 0.045876;
 const FCR_WINTER  = 0.042859;
-let   MFF_PCT     = 0.04;
 
 const PLANS = ['Nights & Weekends', 'Overnight Advantage', 'Smart Usage', 'PrePay', 'Residential Service'];
 const DEFAULT_PLAN = 'Residential Service';
+
+const ENROLL_URLS = {
+  'Nights & Weekends':   'https://georgiapowernightsandweekends.com/Registration/Login',
+  'Overnight Advantage': 'https://www.georgiapower.com/residential/rate-plans/overnight-advantage/plug-in-ev-application-form.html',
+  'Smart Usage':         'https://www.georgiapowersmartusage.com/Registration/Login',
+  'PrePay':              'https://www.georgiapower.com/residential/rate-plans/prepay.html',
+  'Residential Service': 'https://www.georgiapower.com/residential/rate-plans/residential-service.html'
+};
 
 // =============================================================
 // Date helpers
@@ -521,8 +553,7 @@ function applyRiders(baseBill, kwh, summer) {
   const fcr = kwh * (summer ? FCR_SUMMER : FCR_WINTER);
   const eccr = baseBill * ECCR_PCT;
   const dsm  = baseBill * DSM_PCT;
-  const sub = baseBill + fcr + eccr + dsm;
-  return sub * (1 + MFF_PCT);
+  return baseBill + fcr + eccr + dsm;
 }
 
 function calcMonth(hours, y, m) {
@@ -758,11 +789,14 @@ function renderResults(period, allMonths) {
     else if (diff < 0) diffHtml = `<span class="save-pos">save ${fmt$(-diff)}</span>`;
     else diffHtml = `<span class="save-neg">+${fmt$(diff)}</span>`;
     const winnerClass = r.plan === winner.plan ? 'winner' : '';
+    const url = ENROLL_URLS[r.plan];
+    const btnLabel = r.plan === DEFAULT_PLAN ? 'Plan info →' : 'Sign up →';
     return `<tr class="${winnerClass}">
       <td>${r.plan}</td>
       <td class="number">${fmt$(r.cost)}</td>
       <td class="number">${fmt$(r.cost / 12)}</td>
       <td class="number">${diffHtml}</td>
+      <td><a class="enroll-btn" href="${url}" target="_blank" rel="noopener">${btnLabel}</a></td>
     </tr>`;
   }).join('');
   document.getElementById('plan-rows').innerHTML = rows;
@@ -917,10 +951,6 @@ drop.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
 
-document.getElementById('mff').addEventListener('input', e => {
-  MFF_PCT = parseFloat(e.target.value) / 100 || 0;
-  runAnalysis();
-});
 document.getElementById('window').addEventListener('change', runAnalysis);
 document.getElementById('reset').addEventListener('click', () => {
   cachedRows = null;
