@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Georgia Power Plan Picker — Hourly Usage Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --cream: #f7f2e8;
+    --cream-2: #efe8d6;
+    --ink: #1a1a17;
+    --ink-2: #4a4a44;
+    --ink-3: #8a8a7e;
+    --rule: #d8d0bb;
+    --accent: #b8451f;
+    --accent-2: #d97706;
+    --good: #2d6a3e;
+    --bad: #9a2a1e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background-image:
+      radial-gradient(circle at 20% 10%, rgba(184,69,31,0.04), transparent 40%),
+      radial-gradient(circle at 80% 60%, rgba(217,119,6,0.04), transparent 50%);
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 60px 32px 80px;
+  }
+  header {
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 40px;
+    margin-bottom: 40px;
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(38px, 6vw, 64px);
+    line-height: 1.02;
+    letter-spacing: -0.02em;
+    margin-bottom: 18px;
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+  }
+  h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .lede {
+    font-family: 'Fraunces', serif;
+    font-weight: 300;
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    max-width: 640px;
+    font-variation-settings: "opsz" 24;
+  }
+
+  /* Drop zone */
+  .drop {
+    margin-top: 40px;
+    border: 1.5px dashed var(--rule);
+    background: rgba(255,255,255,0.4);
+    padding: 56px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    position: relative;
+  }
+  .drop:hover, .drop.drag {
+    border-color: var(--accent);
+    background: rgba(184,69,31,0.04);
+  }
+  .drop-icon {
+    font-family: 'Fraunces', serif;
+    font-size: 48px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 14px;
+    font-variation-settings: "opsz" 144;
+  }
+  .drop-title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .drop-sub {
+    font-size: 14px;
+    color: var(--ink-3);
+  }
+  .drop input { display: none; }
+
+  .help {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--ink-3);
+    line-height: 1.6;
+  }
+  .help a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+  /* Settings strip */
+  .settings {
+    display: none;
+    margin-top: 32px;
+    padding: 18px 22px;
+    background: rgba(255,255,255,0.5);
+    border-left: 2px solid var(--accent);
+    font-size: 14px;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .settings.show { display: flex; }
+  .settings label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-2);
+  }
+  .settings select, .settings input[type="number"] {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 6px 10px;
+    border: 1px solid var(--rule);
+    background: var(--cream);
+    color: var(--ink);
+    border-radius: 0;
+  }
+  .settings input[type="number"] { width: 64px; }
+
+  /* Results */
+  #results { display: none; margin-top: 56px; }
+  #results.show { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--ink-3);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .profile {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+    margin-bottom: 56px;
+  }
+  .stat {
+    border-top: 2px solid var(--ink);
+    padding-top: 14px;
+  }
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.05;
+    font-variation-settings: "opsz" 144;
+  }
+  .stat-sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 4px;
+  }
+  @media (max-width: 720px) {
+    .profile { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* Recommendation card */
+  .reco {
+    margin-bottom: 56px;
+    padding: 36px 40px;
+    background: var(--ink);
+    color: var(--cream);
+    position: relative;
+    overflow: hidden;
+  }
+  .reco::before {
+    content: "";
+    position: absolute;
+    top: 0; right: 0;
+    width: 240px; height: 240px;
+    background: radial-gradient(circle, rgba(217,119,6,0.18), transparent 70%);
+    pointer-events: none;
+  }
+  .reco-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent-2);
+    margin-bottom: 14px;
+  }
+  .reco-plan {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 500;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    font-variation-settings: "opsz" 144;
+  }
+  .reco-savings {
+    font-size: 16px;
+    line-height: 1.55;
+    color: rgba(247,242,232,0.8);
+    max-width: 600px;
+  }
+  .reco-savings strong {
+    color: var(--accent-2);
+    font-weight: 500;
+  }
+
+  /* Plan table */
+  .plans-wrap { margin-bottom: 56px; }
+  table.plans {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.plans th, table.plans td {
+    padding: 16px 12px;
+    text-align: right;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  table.plans th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+    color: var(--ink-3);
+    border-bottom: 1.5px solid var(--ink);
+    padding-bottom: 10px;
+  }
+  table.plans th:first-child, table.plans td:first-child {
+    text-align: left;
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-weight: 500;
+    font-variation-settings: "opsz" 24;
+  }
+  table.plans td.number {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  table.plans tr.winner td {
+    background: rgba(184,69,31,0.05);
+  }
+  table.plans tr.winner td:first-child::before {
+    content: "★ ";
+    color: var(--accent);
+  }
+  .save-pos { color: var(--good); font-weight: 500; }
+  .save-neg { color: var(--bad); }
+  .save-zero { color: var(--ink-3); }
+
+  /* Reasoning section */
+  .reasoning { margin-bottom: 56px; }
+  .plan-card {
+    border-top: 1px solid var(--rule);
+    padding: 22px 0;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 32px;
+  }
+  .plan-card:last-child { border-bottom: 1px solid var(--rule); }
+  .plan-card-name {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    font-variation-settings: "opsz" 24;
+  }
+  .plan-card-cost {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--ink-3);
+    margin-top: 4px;
+  }
+  .plan-card-text {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--ink-2);
+  }
+  @media (max-width: 720px) {
+    .plan-card { grid-template-columns: 1fr; gap: 8px; }
+  }
+
+  /* Comparison (year-over-year) */
+  .yoy { display: none; margin-bottom: 56px; }
+  .yoy.show { display: block; }
+  .yoy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 14px;
+  }
+  .yoy-col {
+    border: 1px solid var(--rule);
+    padding: 22px;
+    background: rgba(255,255,255,0.4);
+  }
+  .yoy-col h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-3);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .yoy-col .yoy-plan {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .yoy-col .yoy-cost {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .yoy-col .yoy-delta {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  @media (max-width: 720px) {
+    .yoy-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-3);
+    line-height: 1.7;
+  }
+  footer p { margin-bottom: 8px; max-width: 740px; }
+  footer a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
+  .error {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background: rgba(154,42,30,0.08);
+    border-left: 3px solid var(--bad);
+    color: var(--bad);
+    font-size: 14px;
+  }
+
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--rule);
+    padding: 8px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-2);
+    cursor: pointer;
+    margin-top: 16px;
+  }
+  .reset-btn:hover { border-color: var(--ink); color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">An unofficial tool · Georgia Power residential rates</div>
+    <h1>Which plan would <em>actually</em> save you money?</h1>
+    <p class="lede">Upload your hourly usage export from Georgia Power's My Power Usage portal. This tool runs your real consumption against every residential rate plan and tells you which one is cheapest — including all the riders, fees, and surcharges that hide on your bill.</p>
+  </header>
+
+  <label class="drop" id="drop">
+    <div class="drop-icon">↑</div>
+    <div class="drop-title">Drop your usage file here</div>
+    <div class="drop-sub">CSV or XLSX from My Power Usage · processed locally, never uploaded</div>
+    <input type="file" id="file" accept=".csv,.xlsx,.xls">
+  </label>
+
+  <div class="help">
+    <strong>Where to get this file:</strong> Log into <a href="https://www.georgiapower.com/" target="_blank" rel="noopener">georgiapower.com</a> → My Account → My Power Usage → choose a date range (12+ months recommended) → Export. The file should have columns labeled <em>Hour</em> and <em>kWh</em>.
+  </div>
+
+  <div class="settings" id="settings">
+    <label>Franchise fee
+      <input type="number" id="mff" value="4" min="0" max="10" step="0.5"> %
+    </label>
+    <label>Analysis window
+      <select id="window"></select>
+    </label>
+    <button class="reset-btn" id="reset">Start over</button>
+  </div>
+
+  <div id="error-box"></div>
+
+  <main id="results">
+    <div class="section-label">Your usage profile</div>
+    <div class="profile" id="profile"></div>
+
+    <div class="reco" id="reco"></div>
+
+    <div class="plans-wrap">
+      <div class="section-label">All plans, ranked</div>
+      <table class="plans">
+        <thead>
+          <tr>
+            <th>Plan</th>
+            <th>Annual cost</th>
+            <th>Per month</th>
+            <th>vs. default</th>
+          </tr>
+        </thead>
+        <tbody id="plan-rows"></tbody>
+      </table>
+    </div>
+
+    <div class="yoy" id="yoy">
+      <div class="section-label">Year-over-year comparison</div>
+      <p style="font-size:14px;color:var(--ink-2);max-width:680px;">Your file contains more than one year of data. Here's how the cheapest plan would have shifted between the two most recent 12-month periods.</p>
+      <div class="yoy-grid" id="yoy-grid"></div>
+    </div>
+
+    <div class="reasoning">
+      <div class="section-label">Why each plan costs what it does</div>
+      <div id="reasoning-cards"></div>
+    </div>
+  </main>
+
+  <footer>
+    <p><strong>About this tool.</strong> This is an unofficial calculator built from Georgia Power's published 2025/2026 tariff schedules and the Georgia PSC bill calculator. Rates included: basic service charge ($0.4603/day), Fuel Cost Recovery (4.59¢ summer / 4.29¢ winter per kWh), Environmental Compliance Cost Recovery (13.23% of base bill), DSM-R rider (1.22% of base bill), and a configurable Municipal Franchise Fee (default 4%). State and local sales tax (~7–8%) is excluded because it applies equally to all plans.</p>
+    <p><strong>Caveats.</strong> Plan rates change via PSC filings — verify on the <a href="https://www.georgiapower.com/residential/rate-plans.html" target="_blank">Georgia Power rate plans page</a> before switching. FlatBill and Pay-by-Day are customized per household and not modeled here. TOU plans technically use a separate Time-of-Use Fuel Cost Recovery schedule with values close to the standard FCR used here. The Smart Usage demand charge is calculated from your highest single hour each month, which assumes hourly meter granularity matches the actual 60-minute demand window.</p>
+    <p><strong>Privacy.</strong> Your usage file is parsed entirely in your browser. Nothing is uploaded to any server.</p>
+  </footer>
+</div>
+
+<script>
+// =============================================================
+// Georgia Power rate constants (2025/2026 tariffs)
+// =============================================================
+const BASIC_DAILY = 0.4603;
+const ECCR_PCT    = 0.132343;
+const DSM_PCT     = 0.012165;
+const FCR_SUMMER  = 0.045876;
+const FCR_WINTER  = 0.042859;
+let   MFF_PCT     = 0.04;
+
+const PLANS = ['Nights & Weekends', 'Overnight Advantage', 'Smart Usage', 'PrePay', 'Residential Service'];
+const DEFAULT_PLAN = 'Residential Service';
+
+// =============================================================
+// Date helpers
+// =============================================================
+function isHoliday(d) {
+  // Independence Day
+  if (d.getMonth() === 6 && d.getDate() === 4) return true;
+  // Labor Day = first Monday of September
+  if (d.getMonth() === 8 && d.getDay() === 1 && d.getDate() <= 7) return true;
+  return false;
+}
+function isSummerPeak(dt) {
+  const m = dt.getMonth() + 1;
+  if (m < 6 || m > 9) return false;
+  const dow = dt.getDay();
+  if (dow === 0 || dow === 6) return false;
+  if (isHoliday(dt)) return false;
+  const h = dt.getHours();
+  return h >= 14 && h <= 18;
+}
+function isSuperOffPeak(dt) {
+  const h = dt.getHours();
+  return h >= 23 || h < 7;
+}
+function isSummerMonth(m) { return m >= 6 && m <= 9; }
+function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+// =============================================================
+// Bill calculation
+// =============================================================
+function applyRiders(baseBill, kwh, summer) {
+  const fcr = kwh * (summer ? FCR_SUMMER : FCR_WINTER);
+  const eccr = baseBill * ECCR_PCT;
+  const dsm  = baseBill * DSM_PCT;
+  const sub = baseBill + fcr + eccr + dsm;
+  return sub * (1 + MFF_PCT);
+}
+
+function calcMonth(hours, y, m) {
+  const monthlyKwh = hours.reduce((a, h) => a + h.kwh, 0);
+  const summer = isSummerMonth(m);
+  const basic = BASIC_DAILY * daysInMonth(y, m);
+
+  const onPk = hours.filter(h => isSummerPeak(h.dt)).reduce((a, h) => a + h.kwh, 0);
+  const sop  = hours.filter(h => isSuperOffPeak(h.dt)).reduce((a, h) => a + h.kwh, 0);
+  const offPk = monthlyKwh - onPk;
+  const offOA = monthlyKwh - sop - onPk;
+  const maxHr = Math.max(...hours.map(h => h.kwh));
+
+  const out = {};
+
+  // Residential Service (R-30)
+  let energy;
+  if (summer) {
+    energy = Math.min(monthlyKwh, 650) * 0.086121
+           + Math.max(0, Math.min(monthlyKwh, 1000) - 650) * 0.143047
+           + Math.max(0, monthlyKwh - 1000) * 0.148051;
+  } else {
+    energy = monthlyKwh * 0.080602;
+  }
+  out['Residential Service'] = applyRiders(basic + energy, monthlyKwh, summer);
+
+  // Nights & Weekends
+  energy = onPk * 0.298 + offPk * 0.076;
+  out['Nights & Weekends'] = applyRiders(basic + energy, monthlyKwh, summer);
+
+  // Smart Usage
+  energy = onPk * 0.143 + offPk * 0.015;
+  const demand = maxHr * 12.21;
+  out['Smart Usage'] = applyRiders(basic + energy + demand, monthlyKwh, summer);
+
+  // Overnight Advantage
+  energy = sop * 0.022 + onPk * 0.298 + offOA * 0.102;
+  out['Overnight Advantage'] = applyRiders(basic + energy, monthlyKwh, summer);
+
+  // PrePay
+  energy = monthlyKwh * (summer ? 0.120 : 0.084);
+  out['PrePay'] = applyRiders(basic + energy, monthlyKwh, summer);
+
+  return { costs: out, kwh: monthlyKwh, onPk, sop, maxHr };
+}
+
+function analyze(rows) {
+  // group by year-month
+  const byMonth = new Map();
+  for (const r of rows) {
+    const key = `${r.dt.getFullYear()}-${r.dt.getMonth() + 1}`;
+    if (!byMonth.has(key)) byMonth.set(key, []);
+    byMonth.get(key).push(r);
+  }
+
+  const totals = Object.fromEntries(PLANS.map(p => [p, 0]));
+  let totalKwh = 0, totalOnPk = 0, totalSop = 0;
+  let maxDemand = 0;
+
+  for (const [key, hours] of byMonth.entries()) {
+    const [y, m] = key.split('-').map(Number);
+    const r = calcMonth(hours, y, m);
+    for (const p of PLANS) totals[p] += r.costs[p];
+    totalKwh += r.kwh;
+    totalOnPk += r.onPk;
+    totalSop += r.sop;
+    if (r.maxHr > maxDemand) maxDemand = r.maxHr;
+  }
+
+  return { totals, totalKwh, totalOnPk, totalSop, maxDemand, monthCount: byMonth.size };
+}
+
+// =============================================================
+// Parsing
+// =============================================================
+function parseFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: 'array', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: 'yyyy-mm-dd hh:mm' });
+
+        // Find header row containing "Hour" and "kWh"
+        let headerIdx = -1;
+        for (let i = 0; i < Math.min(aoa.length, 20); i++) {
+          const row = aoa[i];
+          if (!row) continue;
+          const lower = row.map(c => String(c || '').toLowerCase());
+          if (lower.some(c => c.includes('hour')) && lower.some(c => c.includes('kwh'))) {
+            headerIdx = i; break;
+          }
+        }
+        if (headerIdx === -1) throw new Error('Could not find a header row with "Hour" and "kWh" columns.');
+
+        const header = aoa[headerIdx].map(c => String(c || '').toLowerCase());
+        const hourCol = header.findIndex(c => c.includes('hour'));
+        const kwhCol  = header.findIndex(c => c.includes('kwh'));
+
+        const rows = [];
+        for (let i = headerIdx + 1; i < aoa.length; i++) {
+          const r = aoa[i];
+          if (!r || r[hourCol] == null || r[kwhCol] == null) continue;
+          let dt;
+          const raw = r[hourCol];
+          if (raw instanceof Date) dt = raw;
+          else dt = new Date(String(raw).replace(' ', 'T'));
+          if (isNaN(dt)) continue;
+          const kwh = parseFloat(r[kwhCol]);
+          if (isNaN(kwh)) continue;
+          rows.push({ dt, kwh });
+        }
+
+        if (rows.length < 24) throw new Error(`Only found ${rows.length} valid hours of data. Need at least a few days for a meaningful analysis.`);
+
+        rows.sort((a, b) => a.dt - b.dt);
+        resolve(rows);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file.'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// =============================================================
+// Window selection
+// =============================================================
+function getCompleteMonths(rows) {
+  // Returns sorted array of {y, m, hours} for months that have ≥90% of expected hours
+  const byMonth = new Map();
+  for (const r of rows) {
+    const key = `${r.dt.getFullYear()}-${r.dt.getMonth() + 1}`;
+    if (!byMonth.has(key)) byMonth.set(key, []);
+    byMonth.get(key).push(r);
+  }
+  const out = [];
+  for (const [key, hours] of byMonth.entries()) {
+    const [y, m] = key.split('-').map(Number);
+    const expected = daysInMonth(y, m) * 24;
+    if (hours.length >= expected * 0.9) {
+      out.push({ y, m, hours, key });
+    }
+  }
+  out.sort((a, b) => (a.y - b.y) || (a.m - b.m));
+  return out;
+}
+
+function getWindow(completeMonths, endY, endM) {
+  // Get the 12 months ending at endY/endM
+  const out = [];
+  let y = endY, m = endM;
+  for (let i = 0; i < 12; i++) {
+    const found = completeMonths.find(c => c.y === y && c.m === m);
+    if (found) out.push(found);
+    m--;
+    if (m < 1) { m = 12; y--; }
+  }
+  return out.reverse();
+}
+
+// =============================================================
+// Rendering
+// =============================================================
+const fmt$ = n => '$' + Math.round(n).toLocaleString();
+const fmtN = n => Math.round(n).toLocaleString();
+
+const PLAN_REASONING = {
+  'Nights & Weekends': (ctx) => `Off-peak energy at 7.6¢/kWh, but summer weekday 2–7 pm jumps to 29.8¢. With ${ctx.peakPct}% of your usage in that peak window, this plan ${ctx.peakPct < 12 ? 'works in your favor' : 'may not fit you well'} — most of your kWh flow through at the low rate.`,
+  'Overnight Advantage': (ctx) => `Three tiers: 29.8¢ summer peak, 10.2¢ daytime off-peak, and a deeply discounted 2.2¢ for every hour from 11 pm to 7 am. You currently put ${ctx.sopPct}% of your usage overnight — ${ctx.sopPct >= 30 ? 'enough volume to make the super-off-peak rate pay off' : 'not quite enough overnight load to outrun the higher daytime rate'}.`,
+  'Smart Usage': (ctx) => `Cheap energy (1.5¢ off-peak / 14.3¢ peak), but every month you pay $12.21 × your single highest-demand hour. Your peak draw was about ${ctx.maxDemand.toFixed(1)} kW, generating roughly ${fmt$(ctx.maxDemand * 12.21 * 12)} in demand charges per year. Only worth it if you can stagger major appliances and AC.`,
+  'PrePay': (ctx) => `Flat seasonal: 12.0¢/kWh in summer, 8.4¢ in winter. No time-of-use complexity, no demand charge. Predictable but rarely the cheapest for high-use households.`,
+  'Residential Service': (ctx) => `The default plan. Winter is a flat 8.06¢/kWh. Summer is tiered: 8.6¢ for the first 650 kWh, 14.3¢ for the next 350, and 14.8¢ above 1,000 — so high-use summer months are punishing. ${ctx.kwh > 18000 ? 'At your usage level, you blow through every tier.' : ''}`
+};
+
+function renderResults(period, allMonths) {
+  const result = analyze(period.flatMap(m => m.hours));
+  const startKey = period[0].key;
+  const endKey = period[period.length - 1].key;
+
+  // Profile
+  const peakPct = (result.totalOnPk / result.totalKwh * 100);
+  const sopPct  = (result.totalSop / result.totalKwh * 100);
+  document.getElementById('profile').innerHTML = `
+    <div class="stat">
+      <div class="stat-label">Total usage</div>
+      <div class="stat-value">${fmtN(result.totalKwh)}</div>
+      <div class="stat-sub">kWh · ${period.length} months</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Monthly average</div>
+      <div class="stat-value">${fmtN(result.totalKwh / period.length)}</div>
+      <div class="stat-sub">kWh / month</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Summer peak share</div>
+      <div class="stat-value">${peakPct.toFixed(1)}%</div>
+      <div class="stat-sub">Jun–Sep weekdays 2–7 pm</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Overnight share</div>
+      <div class="stat-value">${sopPct.toFixed(1)}%</div>
+      <div class="stat-sub">11 pm – 7 am</div>
+    </div>
+  `;
+
+  // Sorted plans
+  const ranked = PLANS.map(p => ({ plan: p, cost: result.totals[p] }))
+                      .sort((a, b) => a.cost - b.cost);
+  const winner = ranked[0];
+  const defaultCost = result.totals[DEFAULT_PLAN];
+  const savings = defaultCost - winner.cost;
+
+  // Recommendation
+  document.getElementById('reco').innerHTML = `
+    <div class="reco-eyebrow">Cheapest plan for your usage</div>
+    <div class="reco-plan">${winner.plan}</div>
+    <div class="reco-savings">
+      ${winner.plan === DEFAULT_PLAN
+        ? `You're already on the cheapest plan for your usage shape. Estimated annual cost: <strong>${fmt$(winner.cost)}</strong>.`
+        : `Estimated annual cost <strong>${fmt$(winner.cost)}</strong> — saves about <strong>${fmt$(savings)}/year</strong> (${fmt$(savings/12)}/month) compared to the default Residential Service plan.`}
+    </div>
+  `;
+
+  // Plan table
+  const rows = ranked.map(r => {
+    const diff = r.cost - defaultCost;
+    let diffHtml;
+    if (Math.abs(diff) < 1) diffHtml = '<span class="save-zero">—</span>';
+    else if (diff < 0) diffHtml = `<span class="save-pos">save ${fmt$(-diff)}</span>`;
+    else diffHtml = `<span class="save-neg">+${fmt$(diff)}</span>`;
+    const winnerClass = r.plan === winner.plan ? 'winner' : '';
+    return `<tr class="${winnerClass}">
+      <td>${r.plan}</td>
+      <td class="number">${fmt$(r.cost)}</td>
+      <td class="number">${fmt$(r.cost / 12)}</td>
+      <td class="number">${diffHtml}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('plan-rows').innerHTML = rows;
+
+  // Reasoning
+  const ctx = {
+    peakPct: peakPct.toFixed(1),
+    sopPct: sopPct.toFixed(1),
+    maxDemand: result.maxDemand,
+    kwh: result.totalKwh
+  };
+  document.getElementById('reasoning-cards').innerHTML = ranked.map(r => `
+    <div class="plan-card">
+      <div>
+        <div class="plan-card-name">${r.plan}</div>
+        <div class="plan-card-cost">${fmt$(r.cost)}/yr · ${fmt$(r.cost/12)}/mo</div>
+      </div>
+      <div class="plan-card-text">${PLAN_REASONING[r.plan](ctx)}</div>
+    </div>
+  `).join('');
+
+  // Year-over-year comparison if we have 24+ complete months
+  if (allMonths.length >= 24) {
+    const lastEnd = allMonths[allMonths.length - 1];
+    const yearB = getWindow(allMonths, lastEnd.y, lastEnd.m);
+    const beforeB = allMonths.indexOf(yearB[0]);
+    if (beforeB >= 12) {
+      const yAEnd = allMonths[beforeB - 1];
+      const yearA = getWindow(allMonths, yAEnd.y, yAEnd.m);
+      if (yearA.length === 12) {
+        renderYoY(yearA, yearB);
+      } else {
+        document.getElementById('yoy').classList.remove('show');
+      }
+    }
+  } else {
+    document.getElementById('yoy').classList.remove('show');
+  }
+}
+
+function renderYoY(yearA, yearB) {
+  const monthName = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const labelA = `${monthName[yearA[0].m]} ${yearA[0].y} – ${monthName[yearA[11].m]} ${yearA[11].y}`;
+  const labelB = `${monthName[yearB[0].m]} ${yearB[0].y} – ${monthName[yearB[11].m]} ${yearB[11].y}`;
+
+  const rA = analyze(yearA.flatMap(m => m.hours));
+  const rB = analyze(yearB.flatMap(m => m.hours));
+
+  const winnerA = PLANS.map(p => ({ plan: p, cost: rA.totals[p] })).sort((a,b) => a.cost - b.cost)[0];
+  const winnerB = PLANS.map(p => ({ plan: p, cost: rB.totals[p] })).sort((a,b) => a.cost - b.cost)[0];
+
+  const kwhDelta = ((rB.totalKwh - rA.totalKwh) / rA.totalKwh * 100);
+  const costDeltaB = rB.totals[winnerB.plan] - rA.totals[winnerB.plan];
+
+  const flipped = winnerA.plan !== winnerB.plan;
+
+  document.getElementById('yoy-grid').innerHTML = `
+    <div class="yoy-col">
+      <h3>${labelA}</h3>
+      <div class="yoy-plan">${winnerA.plan}</div>
+      <div class="yoy-cost">${fmt$(winnerA.cost)}/yr · ${fmtN(rA.totalKwh)} kWh used</div>
+      <div class="yoy-delta">Cheapest plan based on this year's usage shape.</div>
+    </div>
+    <div class="yoy-col">
+      <h3>${labelB}</h3>
+      <div class="yoy-plan">${winnerB.plan}</div>
+      <div class="yoy-cost">${fmt$(winnerB.cost)}/yr · ${fmtN(rB.totalKwh)} kWh used</div>
+      <div class="yoy-delta">
+        ${flipped
+          ? `<strong>The optimal plan changed.</strong> Your usage shape shifted enough that ${winnerB.plan} now beats ${winnerA.plan}. `
+          : `Same plan still wins. `}
+        Total usage ${kwhDelta >= 0 ? 'rose' : 'fell'} ${Math.abs(kwhDelta).toFixed(1)}% year-over-year.
+      </div>
+    </div>
+  `;
+  document.getElementById('yoy').classList.add('show');
+}
+
+// =============================================================
+// Main controller
+// =============================================================
+let cachedRows = null;
+let cachedMonths = null;
+
+async function handleFile(file) {
+  document.getElementById('error-box').innerHTML = '';
+  try {
+    const rows = await parseFile(file);
+    cachedRows = rows;
+    cachedMonths = getCompleteMonths(rows);
+
+    if (cachedMonths.length < 1) {
+      throw new Error('No complete calendar months found in the file. Need at least one full month for analysis.');
+    }
+
+    // Populate window selector
+    const sel = document.getElementById('window');
+    sel.innerHTML = '';
+    const monthName = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    if (cachedMonths.length >= 12) {
+      // Offer rolling 12-month windows
+      for (let i = cachedMonths.length - 1; i >= 11; i--) {
+        const end = cachedMonths[i];
+        const start = cachedMonths[i - 11];
+        const opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = `${monthName[start.m]} ${start.y} – ${monthName[end.m]} ${end.y}`;
+        sel.appendChild(opt);
+      }
+    } else {
+      const start = cachedMonths[0];
+      const end = cachedMonths[cachedMonths.length - 1];
+      const opt = document.createElement('option');
+      opt.value = cachedMonths.length - 1;
+      opt.textContent = `${monthName[start.m]} ${start.y} – ${monthName[end.m]} ${end.y} (${cachedMonths.length} months)`;
+      sel.appendChild(opt);
+    }
+
+    document.getElementById('settings').classList.add('show');
+    document.getElementById('drop').style.display = 'none';
+    runAnalysis();
+  } catch (err) {
+    document.getElementById('error-box').innerHTML = `<div class="error">${err.message}</div>`;
+  }
+}
+
+function runAnalysis() {
+  if (!cachedRows || !cachedMonths) return;
+  const sel = document.getElementById('window');
+  const endIdx = parseInt(sel.value);
+  const startIdx = Math.max(0, endIdx - 11);
+  const period = cachedMonths.slice(startIdx, endIdx + 1);
+  renderResults(period, cachedMonths);
+  document.getElementById('results').classList.add('show');
+}
+
+// =============================================================
+// Event wiring
+// =============================================================
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('file');
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+document.getElementById('mff').addEventListener('input', e => {
+  MFF_PCT = parseFloat(e.target.value) / 100 || 0;
+  runAnalysis();
+});
+document.getElementById('window').addEventListener('change', runAnalysis);
+document.getElementById('reset').addEventListener('click', () => {
+  cachedRows = null;
+  cachedMonths = null;
+  document.getElementById('results').classList.remove('show');
+  document.getElementById('settings').classList.remove('show');
+  document.getElementById('drop').style.display = '';
+  fileInput.value = '';
+  document.getElementById('error-box').innerHTML = '';
+});
+</script>
+</body>
+</html>
