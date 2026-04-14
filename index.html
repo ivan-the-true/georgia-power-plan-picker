@@ -3,37 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Georgia Power Plan Picker — Minimze your electric bill, today!</title>
+<title>Georgia Power Plan Picker — Hourly Usage Analyzer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
-    --cream: #f7f2e8;
-    --cream-2: #efe8d6;
-    --ink: #1a1a17;
-    --ink-2: #4a4a44;
-    --ink-3: #8a8a7e;
-    --rule: #d8d0bb;
-    --accent: #b8451f;
-    --accent-2: #d97706;
-    --good: #2d6a3e;
-    --bad: #9a2a1e;
+    /* Georgia peach palette */
+    --blush: #fdf4ec;
+    --blush-2: #fbe6d4;f
+    --peach: #f5a06b;
+    --peach-deep: #e8743e;
+    --peach-dark: #c44a1f;
+    --pit: #3d1f12;
+    --pit-2: #6b3821;
+    --leaf: #5c7a3e;
+    --leaf-soft: #8aa866;
+    --cream: #fffaf3;
+    --rule: #e8d3b8;
+    --ink: #2a1810;
+    --ink-2: #5a3d2b;
+    --ink-3: #9a7c65;
+    --good: #4a7c3e;
+    --bad: #b8371a;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    background: var(--cream);
+    background: var(--blush);
     color: var(--ink);
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 16px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }
   body {
     background-image:
-      radial-gradient(circle at 20% 10%, rgba(184,69,31,0.04), transparent 40%),
-      radial-gradient(circle at 80% 60%, rgba(217,119,6,0.04), transparent 50%);
+      radial-gradient(circle at 85% 5%, rgba(245,160,107,0.18), transparent 45%),
+      radial-gradient(circle at 10% 90%, rgba(92,122,62,0.08), transparent 55%),
+      radial-gradient(circle at 50% 40%, rgba(232,116,62,0.05), transparent 60%);
     min-height: 100vh;
   }
   .wrap {
@@ -41,126 +49,285 @@
     margin: 0 auto;
     padding: 60px 32px 80px;
   }
+
+  /* HEADER */
   header {
+    padding-bottom: 56px;
+    margin-bottom: 56px;
     border-bottom: 1px solid var(--rule);
-    padding-bottom: 40px;
-    margin-bottom: 40px;
+    position: relative;
   }
   .eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
-    color: var(--accent);
-    margin-bottom: 18px;
+    color: var(--peach-dark);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 1px;
+    background: var(--peach-dark);
   }
   h1 {
-    font-family: 'Fraunces', serif;
-    font-weight: 500;
-    font-size: clamp(38px, 6vw, 64px);
-    line-height: 1.02;
-    letter-spacing: -0.02em;
-    margin-bottom: 18px;
-    font-variation-settings: "opsz" 144, "SOFT" 50;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(40px, 6.5vw, 72px);
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin-bottom: 22px;
+    color: var(--pit);
   }
   h1 em {
     font-style: italic;
-    font-weight: 400;
-    color: var(--accent);
+    font-weight: 300;
+    background: linear-gradient(135deg, var(--peach-deep) 0%, var(--peach-dark) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
   .lede {
-    font-family: 'Fraunces', serif;
+    font-family: 'Source Serif 4', Georgia, serif;
     font-weight: 300;
-    font-size: 19px;
+    font-size: 20px;
     line-height: 1.5;
     color: var(--ink-2);
-    max-width: 640px;
-    font-variation-settings: "opsz" 24;
+    max-width: 660px;
+  }
+  .peach-mark {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 120px;
+    height: 120px;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+  @media (max-width: 720px) {
+    .peach-mark { width: 80px; height: 80px; opacity: 0.5; }
   }
 
-  /* Drop zone */
+  /* STEPS */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+  }
+  .step {
+    position: relative;
+    padding-left: 88px;
+  }
+  .step-num {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--peach) 0%, var(--peach-deep) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--cream);
+    box-shadow: 0 4px 14px rgba(232,116,62,0.25);
+    transition: all 0.3s ease;
+  }
+  .step-num::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 60px;
+    bottom: -56px;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--peach) 0%, transparent 100%);
+    opacity: 0.4;
+  }
+  .step:last-child .step-num::after { display: none; }
+
+  .step-header { margin-bottom: 18px; }
+  .step-label {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--peach-dark);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .step-title {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 30px;
+    font-weight: 500;
+    line-height: 1.1;
+    color: var(--pit);
+    letter-spacing: -0.01em;
+  }
+  .step-body {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--ink-2);
+  }
+  .step-body p { margin-bottom: 12px; }
+  .step-body p:last-child { margin-bottom: 0; }
+  .step-body a {
+    color: var(--peach-dark);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .step-body a:hover { color: var(--pit); }
+  .step-body em {
+    font-style: normal;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--blush-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+  .step-body code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    background: var(--blush-2);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  .step.locked { opacity: 0.45; }
+  .step.locked .step-num {
+    background: var(--rule);
+    box-shadow: none;
+    color: var(--ink-3);
+  }
+  .step.active .step-num {
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 4px 14px rgba(232,116,62,0.25); }
+    50% { box-shadow: 0 4px 14px rgba(232,116,62,0.25), 0 0 0 8px rgba(232,116,62,0.1); }
+  }
+
+  @media (max-width: 720px) {
+    .step { padding-left: 0; }
+    .step-num {
+      position: relative;
+      margin-bottom: 16px;
+      width: 48px;
+      height: 48px;
+      font-size: 20px;
+    }
+    .step-num::after { display: none; }
+    .step-title { font-size: 24px; }
+  }
+
+  /* DROP ZONE */
   .drop {
     display: block;
     width: 100%;
-    margin-top: 40px;
-    border: 1.5px dashed var(--rule);
-    background: rgba(255,255,255,0.4);
-    padding: 56px 32px;
+    margin-top: 20px;
+    border: 1.5px dashed var(--peach);
+    background: rgba(255,255,255,0.5);
+    padding: 48px 32px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.18s ease;
+    transition: all 0.2s ease;
     position: relative;
+    border-radius: 2px;
   }
   .drop:hover, .drop.drag {
-    border-color: var(--accent);
-    background: rgba(184,69,31,0.04);
+    border-color: var(--peach-dark);
+    background: var(--blush-2);
+    transform: translateY(-1px);
   }
   .drop-icon {
-    font-family: 'Fraunces', serif;
-    font-size: 48px;
-    color: var(--accent);
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 52px;
+    color: var(--peach-deep);
     line-height: 1;
     margin-bottom: 14px;
-    font-variation-settings: "opsz" 144;
   }
   .drop-title {
-    font-family: 'Fraunces', serif;
+    font-family: 'Source Serif 4', Georgia, serif;
     font-size: 22px;
     font-weight: 500;
     margin-bottom: 6px;
+    color: var(--pit);
   }
   .drop-sub {
-    font-size: 14px;
+    font-size: 12px;
     color: var(--ink-3);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    letter-spacing: 0.04em;
   }
   .drop input { display: none; }
 
-  .help {
-    margin-top: 18px;
-    font-size: 13px;
-    color: var(--ink-3);
-    line-height: 1.6;
-  }
-  .help a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
-
-  /* Settings strip */
   .settings {
     display: none;
-    margin-top: 32px;
-    padding: 18px 22px;
-    background: rgba(255,255,255,0.5);
-    border-left: 2px solid var(--accent);
+    margin-top: 20px;
+    padding: 16px 20px;
+    background: var(--cream);
+    border-left: 3px solid var(--peach-deep);
     font-size: 14px;
     align-items: center;
-    gap: 24px;
+    gap: 20px;
     flex-wrap: wrap;
   }
   .settings.show { display: flex; }
   .settings label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: var(--ink-2);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
-  .settings select, .settings input[type="number"] {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    padding: 6px 10px;
+  .settings select {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 12px;
+    padding: 7px 12px;
     border: 1px solid var(--rule);
-    background: var(--cream);
+    background: var(--blush);
     color: var(--ink);
     border-radius: 0;
+    text-transform: none;
+    letter-spacing: normal;
   }
-  .settings input[type="number"] { width: 64px; }
+  .reset-btn {
+    background: transparent;
+    border: 1px solid var(--rule);
+    padding: 7px 14px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-2);
+    cursor: pointer;
+    margin-left: auto;
+    transition: all 0.15s ease;
+  }
+  .reset-btn:hover {
+    border-color: var(--peach-dark);
+    color: var(--peach-dark);
+  }
 
-  /* Results */
-  #results { display: none; margin-top: 56px; }
+  /* RESULTS */
+  #results { display: none; margin-top: 28px; }
   #results.show { display: block; animation: fadeIn 0.4s ease; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
   .section-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.16em;
     color: var(--ink-3);
@@ -172,30 +339,30 @@
   .profile {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 28px;
-    margin-bottom: 56px;
+    gap: 24px;
+    margin-bottom: 44px;
   }
   .stat {
-    border-top: 2px solid var(--ink);
+    border-top: 2px solid var(--peach-deep);
     padding-top: 14px;
   }
   .stat-label {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     color: var(--ink-3);
     margin-bottom: 6px;
   }
   .stat-value {
-    font-family: 'Fraunces', serif;
+    font-family: 'Source Serif 4', Georgia, serif;
     font-size: 32px;
     font-weight: 500;
     line-height: 1.05;
-    font-variation-settings: "opsz" 144;
+    color: var(--pit);
   }
   .stat-sub {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 11px;
     color: var(--ink-3);
     margin-top: 4px;
@@ -206,50 +373,62 @@
 
   /* Recommendation card */
   .reco {
-    margin-bottom: 56px;
+    margin-bottom: 44px;
     padding: 36px 40px;
-    background: var(--ink);
+    background: linear-gradient(135deg, var(--pit) 0%, var(--pit-2) 100%);
     color: var(--cream);
     position: relative;
     overflow: hidden;
+    border-radius: 2px;
   }
   .reco::before {
     content: "";
     position: absolute;
-    top: 0; right: 0;
-    width: 240px; height: 240px;
-    background: radial-gradient(circle, rgba(217,119,6,0.18), transparent 70%);
+    top: -40px; right: -40px;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle, rgba(245,160,107,0.28), transparent 65%);
+    pointer-events: none;
+  }
+  .reco::after {
+    content: "";
+    position: absolute;
+    bottom: -60px; left: -20px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(92,122,62,0.18), transparent 70%);
     pointer-events: none;
   }
   .reco-eyebrow {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
-    color: var(--accent-2);
+    color: var(--peach);
     margin-bottom: 14px;
+    position: relative;
   }
   .reco-plan {
-    font-family: 'Fraunces', serif;
-    font-size: 44px;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 46px;
     font-weight: 500;
     line-height: 1.05;
     margin-bottom: 16px;
-    font-variation-settings: "opsz" 144;
+    position: relative;
+    color: var(--cream);
   }
   .reco-savings {
     font-size: 16px;
     line-height: 1.55;
-    color: rgba(247,242,232,0.8);
+    color: rgba(255,250,243,0.82);
     max-width: 600px;
+    position: relative;
   }
   .reco-savings strong {
-    color: var(--accent-2);
+    color: var(--peach);
     font-weight: 500;
   }
 
   /* Plan table */
-  .plans-wrap { margin-bottom: 56px; }
+  .plans-wrap { margin-bottom: 44px; }
   table.plans {
     width: 100%;
     border-collapse: collapse;
@@ -262,31 +441,37 @@
     font-variant-numeric: tabular-nums;
   }
   table.plans th {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     font-weight: 500;
     color: var(--ink-3);
-    border-bottom: 1.5px solid var(--ink);
+    border-bottom: 1.5px solid var(--pit);
     padding-bottom: 10px;
   }
   table.plans th:first-child, table.plans td:first-child {
     text-align: left;
-    font-family: 'Fraunces', serif;
+    font-family: 'Source Serif 4', Georgia, serif;
     font-size: 17px;
     font-weight: 500;
-    font-variation-settings: "opsz" 24;
+    color: var(--pit);
+  }
+  table.plans th:last-child, table.plans td:last-child {
+    text-align: right;
+    width: 1%;
+    white-space: nowrap;
   }
   table.plans td.number {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    color: var(--ink);
   }
   table.plans tr.winner td {
-    background: rgba(184,69,31,0.05);
+    background: var(--blush-2);
   }
   table.plans tr.winner td:first-child::before {
     content: "★ ";
-    color: var(--accent);
+    color: var(--peach-deep);
   }
   .save-pos { color: var(--good); font-weight: 500; }
   .save-neg { color: var(--bad); }
@@ -296,9 +481,9 @@
     display: inline-block;
     padding: 7px 14px;
     background: transparent;
-    color: var(--accent);
-    border: 1px solid var(--accent);
-    font-family: 'IBM Plex Mono', monospace;
+    color: var(--peach-dark);
+    border: 1px solid var(--peach-dark);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -307,20 +492,21 @@
     white-space: nowrap;
   }
   .enroll-btn:hover {
-    background: var(--accent);
+    background: var(--peach-dark);
     color: var(--cream);
   }
   table.plans tr.winner .enroll-btn {
-    background: var(--accent);
+    background: var(--peach-deep);
     color: var(--cream);
+    border-color: var(--peach-deep);
   }
   table.plans tr.winner .enroll-btn:hover {
-    background: var(--ink);
-    border-color: var(--ink);
+    background: var(--pit);
+    border-color: var(--pit);
   }
 
-  /* Reasoning section */
-  .reasoning { margin-bottom: 56px; }
+  /* Reasoning cards */
+  .reasoning { margin-bottom: 44px; }
   .plan-card {
     border-top: 1px solid var(--rule);
     padding: 22px 0;
@@ -330,42 +516,48 @@
   }
   .plan-card:last-child { border-bottom: 1px solid var(--rule); }
   .plan-card-name {
-    font-family: 'Fraunces', serif;
+    font-family: 'Source Serif 4', Georgia, serif;
     font-size: 22px;
     font-weight: 500;
-    font-variation-settings: "opsz" 24;
+    color: var(--pit);
   }
   .plan-card-cost {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 13px;
     color: var(--ink-3);
     margin-top: 4px;
   }
   .plan-card-text {
     font-size: 14.5px;
-    line-height: 1.6;
+    line-height: 1.65;
     color: var(--ink-2);
   }
   @media (max-width: 720px) {
     .plan-card { grid-template-columns: 1fr; gap: 8px; }
   }
 
-  /* Comparison (year-over-year) */
-  .yoy { display: none; margin-bottom: 56px; }
+  /* Year-over-year */
+  .yoy { display: none; margin-bottom: 44px; }
   .yoy.show { display: block; }
+  .yoy-intro {
+    font-size: 14px;
+    color: var(--ink-2);
+    max-width: 680px;
+    margin-bottom: 14px;
+  }
   .yoy-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
-    margin-top: 14px;
   }
   .yoy-col {
     border: 1px solid var(--rule);
-    padding: 22px;
-    background: rgba(255,255,255,0.4);
+    padding: 24px;
+    background: var(--cream);
+    border-radius: 2px;
   }
   .yoy-col h3 {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -374,13 +566,14 @@
     font-weight: 500;
   }
   .yoy-col .yoy-plan {
-    font-family: 'Fraunces', serif;
-    font-size: 22px;
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: 24px;
     font-weight: 500;
     margin-bottom: 4px;
+    color: var(--pit);
   }
   .yoy-col .yoy-cost {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     font-size: 13px;
     color: var(--ink-2);
   }
@@ -388,7 +581,10 @@
     margin-top: 14px;
     font-size: 13px;
     color: var(--ink-2);
-    line-height: 1.5;
+    line-height: 1.55;
+  }
+  .yoy-col .yoy-delta strong {
+    color: var(--peach-dark);
   }
   @media (max-width: 720px) {
     .yoy-grid { grid-template-columns: 1fr; }
@@ -404,105 +600,154 @@
     line-height: 1.7;
   }
   footer p { margin-bottom: 8px; max-width: 740px; }
-  footer a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  footer a { color: var(--peach-dark); text-decoration: underline; text-underline-offset: 2px; }
+  footer strong { color: var(--ink-2); }
 
   .error {
-    margin-top: 24px;
-    padding: 16px 20px;
-    background: rgba(154,42,30,0.08);
+    margin-top: 20px;
+    padding: 14px 18px;
+    background: rgba(184,55,26,0.08);
     border-left: 3px solid var(--bad);
     color: var(--bad);
     font-size: 14px;
   }
-
-  .reset-btn {
-    background: none;
-    border: 1px solid var(--rule);
-    padding: 8px 16px;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--ink-2);
-    cursor: pointer;
-    margin-top: 16px;
-  }
-  .reset-btn:hover { border-color: var(--ink); color: var(--ink); }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">An unofficial tool · Georgia Power residential rates</div>
-    <h1>Which plan would <em>actually</em> save you money?</h1>
-    <p class="lede">Upload your hourly usage export from Georgia Power's My Power Usage portal. This tool runs your real consumption against every residential rate plan and tells you which one is cheapest — including all the riders, fees, and surcharges that hide on your bill.</p>
+    <svg class="peach-mark" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#fbc089"/>
+          <stop offset="45%" stop-color="#f5a06b"/>
+          <stop offset="100%" stop-color="#c44a1f"/>
+        </linearGradient>
+        <linearGradient id="boltShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#e8743e" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#3d1f12" stop-opacity="0.25"/>
+        </linearGradient>
+      </defs>
+      <!-- Soft glow halo -->
+      <circle cx="60" cy="60" r="52" fill="url(#boltShadow)" opacity="0.4"/>
+      <!-- Main bolt shape -->
+      <path d="M68 12 L30 66 L54 66 L44 108 L92 48 L66 48 Z"
+            fill="url(#boltGrad)"
+            stroke="#c44a1f"
+            stroke-width="1.5"
+            stroke-linejoin="round"/>
+      <!-- Inner highlight for dimension -->
+      <path d="M66 20 L40 62 L56 62 L50 90"
+            stroke="#fdf4ec"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            fill="none"
+            opacity="0.55"/>
+    </svg>
+    <div class="eyebrow">A Georgia Power rate plan analyzer</div>
+    <h1>Which <em>Georgia&nbsp;Power</em><br>plan fits your home?</h1>
+    <p class="lede">Upload your hourly usage and this tool runs it against every residential rate plan — basic charges, riders, and all — to tell you which one is actually cheapest for the way you use electricity.</p>
   </header>
 
-  <label class="drop" id="drop">
-    <div class="drop-icon">↑</div>
-    <div class="drop-title">Drop your usage file here</div>
-    <div class="drop-sub">CSV or XLSX from My Power Usage · processed locally, never uploaded</div>
-    <input type="file" id="file" accept=".csv,.xlsx,.xls">
-  </label>
+  <div class="steps">
 
-  <div class="help">
-    <strong>Where to get this file:</strong> Log into <a href="https://customerservice2.southerncompany.com/Billing/MyPowerUsage" target="_blank" rel="noopener">georgiapower.com</a> → <em>Menu</em> → <em>Billing and Payments</em> → <em>Usage</em> → select <em>Hourly</em> on the chart → click the <em>Chart Options</em> button and select <em>Switch to kWh View</em> → on desktop click the <em>Export</em> dropdown to the right and select <em>Export to Excel</em>, on moble click <em>Chart Options</em> again and click <em>Export Excel</em> → choose <em>custom date range</em> (most recent 12+ months recommended) → then click the <em>Export</em> button. The file should have columns labeled <em>Hour</em> and <em>kWh</em>.
+    <!-- STEP 1 -->
+    <section class="step" id="step1">
+      <div class="step-num">1</div>
+      <div class="step-header">
+        <div class="step-label">First</div>
+        <h2 class="step-title">Get your usage file from Georgia Power</h2>
+      </div>
+      <div class="step-body">
+        <p>Log into <a href="https://customerservice2.southerncompany.com/Billing/MyPowerUsage" target="_blank" rel="noopener">georgiapower.com</a> → <em>Menu</em> → <em>Billing and Payments</em> → <em>Usage</em> → select <em>Hourly</em> on the chart → click the <em>Chart Options</em> button and select <em>Switch to kWh View</em> → on desktop click the <em>Export</em> dropdown to the right and select <em>Export to Excel</em>, on moble click <em>Chart Options</em> again and click <em>Export Excel</em> → choose <em>custom date range</em> (most recent 12+ months recommended) → then click the <em>Export</em> button. The file should have columns labeled <em>Hour</em> and <em>kWh</em>.</p>
+      </div>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="step active" id="step2">
+      <div class="step-num">2</div>
+      <div class="step-header">
+        <div class="step-label">Then</div>
+        <h2 class="step-title">Upload the file</h2>
+      </div>
+      <div class="step-body">
+        <p>Drag it onto the box below, or click to pick it from your computer. Everything runs locally in your browser — nothing gets uploaded to any server.</p>
+      </div>
+
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".csv,.xlsx,.xls">
+        <div class="drop-icon">↑</div>
+        <div class="drop-title">Drop your usage file here</div>
+        <div class="drop-sub">.xlsx or .csv</div>
+      </label>
+
+      <div class="settings" id="settings">
+        <label>Analysis window
+          <select id="window"></select>
+        </label>
+        <button class="reset-btn" id="reset">Start over</button>
+      </div>
+
+      <div id="error-box"></div>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="step locked" id="step3">
+      <div class="step-num">3</div>
+      <div class="step-header">
+        <div class="step-label">Finally</div>
+        <h2 class="step-title">Review your results</h2>
+      </div>
+      <div class="step-body" id="step3-intro">
+        <p>Your usage profile, ranked plans, and reasoning for each one will appear here after you upload a file.</p>
+      </div>
+
+      <main id="results">
+        <div class="section-label">Your usage profile</div>
+        <div class="profile" id="profile"></div>
+
+        <div class="reco" id="reco"></div>
+
+        <div class="plans-wrap">
+          <div class="section-label">All plans, ranked</div>
+          <table class="plans">
+            <thead>
+              <tr>
+                <th>Plan</th>
+                <th>Annual cost</th>
+                <th>Per month</th>
+                <th>vs. default</th>
+                <th>Enroll</th>
+              </tr>
+            </thead>
+            <tbody id="plan-rows"></tbody>
+          </table>
+        </div>
+
+        <div class="yoy" id="yoy">
+          <div class="section-label">Year-over-year comparison</div>
+          <p class="yoy-intro">Your file contains more than one year of data. Here's how the cheapest plan would have shifted between the two most recent 12-month periods.</p>
+          <div class="yoy-grid" id="yoy-grid"></div>
+        </div>
+
+        <div class="reasoning">
+          <div class="section-label">Why each plan costs what it does</div>
+          <div id="reasoning-cards"></div>
+        </div>
+      </main>
+    </section>
   </div>
-
-  <div class="settings" id="settings">
-    <label>Analysis window
-      <select id="window"></select>
-    </label>
-    <button class="reset-btn" id="reset">Start over</button>
-  </div>
-
-  <div id="error-box"></div>
-
-  <main id="results">
-    <div class="section-label">Your usage profile</div>
-    <div class="profile" id="profile"></div>
-
-    <div class="reco" id="reco"></div>
-
-    <div class="plans-wrap">
-      <div class="section-label">All plans, ranked</div>
-      <table class="plans">
-        <thead>
-          <tr>
-            <th>Plan</th>
-            <th>Annual cost</th>
-            <th>Per month</th>
-            <th>vs. default</th>
-            <th>Enroll</th>
-          </tr>
-        </thead>
-        <tbody id="plan-rows"></tbody>
-      </table>
-    </div>
-
-    <div class="yoy" id="yoy">
-      <div class="section-label">Year-over-year comparison</div>
-      <p style="font-size:14px;color:var(--ink-2);max-width:680px;">Your file contains more than one year of data. Here's how the cheapest plan would have shifted between the two most recent 12-month periods.</p>
-      <div class="yoy-grid" id="yoy-grid"></div>
-    </div>
-
-    <div class="reasoning">
-      <div class="section-label">Why each plan costs what it does</div>
-      <div id="reasoning-cards"></div>
-    </div>
-  </main>
 
   <footer>
     <p><strong>About this tool.</strong> This is an unofficial calculator built from Georgia Power's published 2025/2026 tariff schedules and the Georgia PSC bill calculator. Rates included: basic service charge ($0.4603/day), Fuel Cost Recovery (4.59¢ summer / 4.29¢ winter per kWh), Environmental Compliance Cost Recovery (13.23% of base bill), and the DSM-R rider (1.22% of base bill). Municipal franchise fees (~3–4%) and state/local sales tax (~7–8%) are excluded because they apply equally to every plan and don't change which plan is cheapest — your real bill will be modestly higher than the totals shown here, but the ranking and the savings between plans are accurate.</p>
     <p><strong>Caveats.</strong> Plan rates change via PSC filings — verify on the <a href="https://www.georgiapower.com/residential/rate-plans.html" target="_blank">Georgia Power rate plans page</a> before switching. FlatBill and Pay-by-Day are customized per household and not modeled here. TOU plans technically use a separate Time-of-Use Fuel Cost Recovery schedule with values close to the standard FCR used here. The Smart Usage demand charge is calculated from your highest single hour each month, which assumes hourly meter granularity matches the actual 60-minute demand window.</p>
     <p><strong>Privacy.</strong> Your usage file is parsed entirely in your browser. Nothing is uploaded to any server.</p>
+    <p><strong>Not affiliated with Georgia Power.</strong> This is an independent third-party tool. "Georgia Power" is a trademark of Southern Company.</p>
   </footer>
 </div>
 
 <script>
-// =============================================================
-// Georgia Power rate constants (2025/2026 tariffs)
-// =============================================================
 const BASIC_DAILY = 0.4603;
 const ECCR_PCT    = 0.132343;
 const DSM_PCT     = 0.012165;
@@ -520,13 +765,8 @@ const ENROLL_URLS = {
   'Residential Service': 'https://www.georgiapower.com/residential/rate-plans/residential-service.html'
 };
 
-// =============================================================
-// Date helpers
-// =============================================================
 function isHoliday(d) {
-  // Independence Day
   if (d.getMonth() === 6 && d.getDate() === 4) return true;
-  // Labor Day = first Monday of September
   if (d.getMonth() === 8 && d.getDay() === 1 && d.getDate() <= 7) return true;
   return false;
 }
@@ -546,9 +786,6 @@ function isSuperOffPeak(dt) {
 function isSummerMonth(m) { return m >= 6 && m <= 9; }
 function daysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
 
-// =============================================================
-// Bill calculation
-// =============================================================
 function applyRiders(baseBill, kwh, summer) {
   const fcr = kwh * (summer ? FCR_SUMMER : FCR_WINTER);
   const eccr = baseBill * ECCR_PCT;
@@ -568,8 +805,6 @@ function calcMonth(hours, y, m) {
   const maxHr = Math.max(...hours.map(h => h.kwh));
 
   const out = {};
-
-  // Residential Service (R-30)
   let energy;
   if (summer) {
     energy = Math.min(monthlyKwh, 650) * 0.086121
@@ -580,20 +815,16 @@ function calcMonth(hours, y, m) {
   }
   out['Residential Service'] = applyRiders(basic + energy, monthlyKwh, summer);
 
-  // Nights & Weekends
   energy = onPk * 0.298 + offPk * 0.076;
   out['Nights & Weekends'] = applyRiders(basic + energy, monthlyKwh, summer);
 
-  // Smart Usage
   energy = onPk * 0.143 + offPk * 0.015;
   const demand = maxHr * 12.21;
   out['Smart Usage'] = applyRiders(basic + energy + demand, monthlyKwh, summer);
 
-  // Overnight Advantage
   energy = sop * 0.022 + onPk * 0.298 + offOA * 0.102;
   out['Overnight Advantage'] = applyRiders(basic + energy, monthlyKwh, summer);
 
-  // PrePay
   energy = monthlyKwh * (summer ? 0.120 : 0.084);
   out['PrePay'] = applyRiders(basic + energy, monthlyKwh, summer);
 
@@ -601,7 +832,6 @@ function calcMonth(hours, y, m) {
 }
 
 function analyze(rows) {
-  // group by year-month
   const byMonth = new Map();
   for (const r of rows) {
     const key = `${r.dt.getFullYear()}-${r.dt.getMonth() + 1}`;
@@ -626,9 +856,6 @@ function analyze(rows) {
   return { totals, totalKwh, totalOnPk, totalSop, maxDemand, monthCount: byMonth.size };
 }
 
-// =============================================================
-// Parsing
-// =============================================================
 function parseFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -639,7 +866,6 @@ function parseFile(file) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, dateNF: 'yyyy-mm-dd hh:mm' });
 
-        // Find header row containing "Hour" and "kWh"
         let headerIdx = -1;
         for (let i = 0; i < Math.min(aoa.length, 20); i++) {
           const row = aoa[i];
@@ -682,11 +908,7 @@ function parseFile(file) {
   });
 }
 
-// =============================================================
-// Window selection
-// =============================================================
 function getCompleteMonths(rows) {
-  // Returns sorted array of {y, m, hours} for months that have ≥90% of expected hours
   const byMonth = new Map();
   for (const r of rows) {
     const key = `${r.dt.getFullYear()}-${r.dt.getMonth() + 1}`;
@@ -706,7 +928,6 @@ function getCompleteMonths(rows) {
 }
 
 function getWindow(completeMonths, endY, endM) {
-  // Get the 12 months ending at endY/endM
   const out = [];
   let y = endY, m = endM;
   for (let i = 0; i < 12; i++) {
@@ -718,9 +939,6 @@ function getWindow(completeMonths, endY, endM) {
   return out.reverse();
 }
 
-// =============================================================
-// Rendering
-// =============================================================
 const fmt$ = n => '$' + Math.round(n).toLocaleString();
 const fmtN = n => Math.round(n).toLocaleString();
 
@@ -734,10 +952,7 @@ const PLAN_REASONING = {
 
 function renderResults(period, allMonths) {
   const result = analyze(period.flatMap(m => m.hours));
-  const startKey = period[0].key;
-  const endKey = period[period.length - 1].key;
 
-  // Profile
   const peakPct = (result.totalOnPk / result.totalKwh * 100);
   const sopPct  = (result.totalSop / result.totalKwh * 100);
   document.getElementById('profile').innerHTML = `
@@ -763,14 +978,12 @@ function renderResults(period, allMonths) {
     </div>
   `;
 
-  // Sorted plans
   const ranked = PLANS.map(p => ({ plan: p, cost: result.totals[p] }))
                       .sort((a, b) => a.cost - b.cost);
   const winner = ranked[0];
   const defaultCost = result.totals[DEFAULT_PLAN];
   const savings = defaultCost - winner.cost;
 
-  // Recommendation
   document.getElementById('reco').innerHTML = `
     <div class="reco-eyebrow">Cheapest plan for your usage</div>
     <div class="reco-plan">${winner.plan}</div>
@@ -781,7 +994,6 @@ function renderResults(period, allMonths) {
     </div>
   `;
 
-  // Plan table
   const rows = ranked.map(r => {
     const diff = r.cost - defaultCost;
     let diffHtml;
@@ -801,7 +1013,6 @@ function renderResults(period, allMonths) {
   }).join('');
   document.getElementById('plan-rows').innerHTML = rows;
 
-  // Reasoning
   const ctx = {
     peakPct: peakPct.toFixed(1),
     sopPct: sopPct.toFixed(1),
@@ -818,7 +1029,6 @@ function renderResults(period, allMonths) {
     </div>
   `).join('');
 
-  // Year-over-year comparison if we have 24+ complete months
   if (allMonths.length >= 24) {
     const lastEnd = allMonths[allMonths.length - 1];
     const yearB = getWindow(allMonths, lastEnd.y, lastEnd.m);
@@ -828,13 +1038,11 @@ function renderResults(period, allMonths) {
       const yearA = getWindow(allMonths, yAEnd.y, yAEnd.m);
       if (yearA.length === 12) {
         renderYoY(yearA, yearB);
-      } else {
-        document.getElementById('yoy').classList.remove('show');
+        return;
       }
     }
-  } else {
-    document.getElementById('yoy').classList.remove('show');
   }
+  document.getElementById('yoy').classList.remove('show');
 }
 
 function renderYoY(yearA, yearB) {
@@ -849,8 +1057,6 @@ function renderYoY(yearA, yearB) {
   const winnerB = PLANS.map(p => ({ plan: p, cost: rB.totals[p] })).sort((a,b) => a.cost - b.cost)[0];
 
   const kwhDelta = ((rB.totalKwh - rA.totalKwh) / rA.totalKwh * 100);
-  const costDeltaB = rB.totals[winnerB.plan] - rA.totals[winnerB.plan];
-
   const flipped = winnerA.plan !== winnerB.plan;
 
   document.getElementById('yoy-grid').innerHTML = `
@@ -875,9 +1081,6 @@ function renderYoY(yearA, yearB) {
   document.getElementById('yoy').classList.add('show');
 }
 
-// =============================================================
-// Main controller
-// =============================================================
 let cachedRows = null;
 let cachedMonths = null;
 
@@ -892,13 +1095,11 @@ async function handleFile(file) {
       throw new Error('No complete calendar months found in the file. Need at least one full month for analysis.');
     }
 
-    // Populate window selector
     const sel = document.getElementById('window');
     sel.innerHTML = '';
     const monthName = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
     if (cachedMonths.length >= 12) {
-      // Offer rolling 12-month windows
       for (let i = cachedMonths.length - 1; i >= 11; i--) {
         const end = cachedMonths[i];
         const start = cachedMonths[i - 11];
@@ -917,8 +1118,16 @@ async function handleFile(file) {
     }
 
     document.getElementById('settings').classList.add('show');
-    document.getElementById('drop').style.display = 'none';
     runAnalysis();
+
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step3').classList.remove('locked');
+    document.getElementById('step3').classList.add('active');
+    document.getElementById('step3-intro').style.display = 'none';
+
+    setTimeout(() => {
+      document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   } catch (err) {
     document.getElementById('error-box').innerHTML = `<div class="error">${err.message}</div>`;
   }
@@ -934,9 +1143,6 @@ function runAnalysis() {
   document.getElementById('results').classList.add('show');
 }
 
-// =============================================================
-// Event wiring
-// =============================================================
 const drop = document.getElementById('drop');
 const fileInput = document.getElementById('file');
 
@@ -957,9 +1163,13 @@ document.getElementById('reset').addEventListener('click', () => {
   cachedMonths = null;
   document.getElementById('results').classList.remove('show');
   document.getElementById('settings').classList.remove('show');
-  document.getElementById('drop').style.display = '';
   fileInput.value = '';
   document.getElementById('error-box').innerHTML = '';
+  document.getElementById('step2').classList.add('active');
+  document.getElementById('step3').classList.add('locked');
+  document.getElementById('step3').classList.remove('active');
+  document.getElementById('step3-intro').style.display = '';
+  document.getElementById('step1').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 </script>
 </body>
