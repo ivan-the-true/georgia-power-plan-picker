@@ -4,9 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Georgia Power Plan Picker — Hourly Usage Analyzer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   :root {
@@ -32,7 +29,7 @@
   html, body {
     background: var(--blush);
     color: var(--ink);
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size: 16px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
@@ -58,7 +55,7 @@
     position: relative;
   }
   .eyebrow {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
@@ -76,7 +73,7 @@
     background: var(--peach-dark);
   }
   h1 {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-weight: 400;
     font-size: clamp(40px, 6.5vw, 72px);
     line-height: 1;
@@ -93,7 +90,7 @@
     -webkit-text-fill-color: transparent;
   }
   .lede {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-weight: 300;
     font-size: 20px;
     line-height: 1.5;
@@ -130,14 +127,15 @@
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--peach) 0%, var(--peach-deep) 100%);
+    background-color: #e8743e;
+    background-image: linear-gradient(135deg, #f5a06b 0%, #e8743e 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 26px;
     font-weight: 500;
-    color: var(--cream);
+    color: #fffaf3;
     box-shadow: 0 4px 14px rgba(232,116,62,0.25);
     transition: all 0.3s ease;
   }
@@ -155,7 +153,7 @@
 
   .step-header { margin-bottom: 18px; }
   .step-label {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.14em;
@@ -164,7 +162,7 @@
     font-weight: 500;
   }
   .step-title {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 30px;
     font-weight: 500;
     line-height: 1.1;
@@ -194,11 +192,58 @@
     border-radius: 3px;
   }
   .step-body code {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 13px;
     background: var(--blush-2);
     padding: 1px 6px;
     border-radius: 3px;
+  }
+  .step-body ol.substeps {
+    list-style: none;
+    counter-reset: substep;
+    margin: 4px 0 0;
+    padding: 0;
+  }
+  .step-body ol.substeps > li {
+    counter-increment: substep;
+    position: relative;
+    padding: 10px 0 10px 38px;
+    border-top: 1px solid var(--rule);
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .step-body ol.substeps > li:last-child {
+    border-bottom: 1px solid var(--rule);
+  }
+  .step-body ol.substeps > li::before {
+    content: counter(substep);
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--blush-2);
+    color: var(--peach-dark);
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-body ol.substeps .sub-note {
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--ink-3);
+  }
+  .step-body .hint {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--ink-3);
+    font-style: italic;
   }
 
   .step.locked { opacity: 0.45; }
@@ -248,14 +293,14 @@
     transform: translateY(-1px);
   }
   .drop-icon {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 52px;
     color: var(--peach-deep);
     line-height: 1;
     margin-bottom: 14px;
   }
   .drop-title {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 22px;
     font-weight: 500;
     margin-bottom: 6px;
@@ -264,7 +309,7 @@
   .drop-sub {
     font-size: 12px;
     color: var(--ink-3);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     letter-spacing: 0.04em;
   }
   .drop input { display: none; }
@@ -286,13 +331,13 @@
     align-items: center;
     gap: 10px;
     color: var(--ink-2);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
   .settings select {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 12px;
     padding: 7px 12px;
     border: 1px solid var(--rule);
@@ -306,7 +351,7 @@
     background: transparent;
     border: 1px solid var(--rule);
     padding: 7px 14px;
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -326,7 +371,7 @@
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
   .section-label {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.16em;
@@ -347,7 +392,7 @@
     padding-top: 14px;
   }
   .stat-label {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -355,14 +400,14 @@
     margin-bottom: 6px;
   }
   .stat-value {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 32px;
     font-weight: 500;
     line-height: 1.05;
     color: var(--pit);
   }
   .stat-sub {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px;
     color: var(--ink-3);
     margin-top: 4px;
@@ -398,7 +443,7 @@
     pointer-events: none;
   }
   .reco-eyebrow {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.18em;
@@ -407,7 +452,7 @@
     position: relative;
   }
   .reco-plan {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 46px;
     font-weight: 500;
     line-height: 1.05;
@@ -441,7 +486,7 @@
     font-variant-numeric: tabular-nums;
   }
   table.plans th {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -452,7 +497,7 @@
   }
   table.plans th:first-child, table.plans td:first-child {
     text-align: left;
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 17px;
     font-weight: 500;
     color: var(--pit);
@@ -463,7 +508,7 @@
     white-space: nowrap;
   }
   table.plans td.number {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     color: var(--ink);
   }
   table.plans tr.winner td {
@@ -483,7 +528,7 @@
     background: transparent;
     color: var(--peach-dark);
     border: 1px solid var(--peach-dark);
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -516,13 +561,13 @@
   }
   .plan-card:last-child { border-bottom: 1px solid var(--rule); }
   .plan-card-name {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 22px;
     font-weight: 500;
     color: var(--pit);
   }
   .plan-card-cost {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 13px;
     color: var(--ink-3);
     margin-top: 4px;
@@ -557,7 +602,7 @@
     border-radius: 2px;
   }
   .yoy-col h3 {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
@@ -566,14 +611,14 @@
     font-weight: 500;
   }
   .yoy-col .yoy-plan {
-    font-family: 'Source Serif 4', Georgia, serif;
+    font-family: Georgia, 'Times New Roman', serif;
     font-size: 24px;
     font-weight: 500;
     margin-bottom: 4px;
     color: var(--pit);
   }
   .yoy-col .yoy-cost {
-    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
     font-size: 13px;
     color: var(--ink-2);
   }
@@ -623,13 +668,7 @@
           <stop offset="45%" stop-color="#f5a06b"/>
           <stop offset="100%" stop-color="#c44a1f"/>
         </linearGradient>
-        <linearGradient id="boltShadow" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#e8743e" stop-opacity="0.35"/>
-          <stop offset="100%" stop-color="#3d1f12" stop-opacity="0.25"/>
-        </linearGradient>
       </defs>
-      <!-- Soft glow halo -->
-      <circle cx="60" cy="60" r="52" fill="url(#boltShadow)" opacity="0.4"/>
       <!-- Main bolt shape -->
       <path d="M68 12 L30 66 L54 66 L44 108 L92 48 L66 48 Z"
             fill="url(#boltGrad)"
@@ -660,7 +699,19 @@
         <h2 class="step-title">Get your usage file from Georgia Power</h2>
       </div>
       <div class="step-body">
-        <p>Log into <a href="https://customerservice2.southerncompany.com/Billing/MyPowerUsage" target="_blank" rel="noopener">georgiapower.com</a> → <em>Menu</em> → <em>Billing and Payments</em> → <em>Usage</em> → select <em>Hourly</em> on the chart → click the <em>Chart Options</em> button and select <em>Switch to kWh View</em> → on desktop click the <em>Export</em> dropdown to the right and select <em>Export to Excel</em>, on moble click <em>Chart Options</em> again and click <em>Export Excel</em> → choose <em>custom date range</em> (most recent 12+ months recommended) → then click the <em>Export</em> button. The file should have columns labeled <em>Hour</em> and <em>kWh</em>.</p>
+        <p>Head to <a href="https://customerservice2.southerncompany.com/Billing/MyPowerUsage" target="_blank" rel="noopener">georgiapower.com</a> and log in, then:</p>
+        <ol class="substeps">
+          <li>Open the <em>Menu</em> and go to <em>Billing and Payments</em> → <em>Usage</em>.</li>
+          <li>On the usage chart, select <em>Hourly</em>.</li>
+          <li>Click the <em>Chart Options</em> button and choose <em>Switch to kWh View</em>.</li>
+          <li>
+            Open the export control:
+            <span class="sub-note">On desktop, click the <em>Export</em> dropdown to the right. On mobile, tap <em>Chart Options</em> again and choose <em>Export Excel</em>.</span>
+          </li>
+          <li>Pick <em>custom date range</em> and choose the most recent 12+ months.</li>
+          <li>Click the <em>Export</em> button to download the file.</li>
+        </ol>
+        <p class="hint">The resulting file should have columns labeled <em>Hour</em> and <em>kWh</em> — that's what to upload next.</p>
       </div>
     </section>
 
@@ -672,7 +723,7 @@
         <h2 class="step-title">Upload the file</h2>
       </div>
       <div class="step-body">
-        <p>Drag it onto the box below, or click to pick it from your computer. Everything runs locally in your browser — nothing gets uploaded to any server.</p>
+        <p>Drag it onto the box below, or click it to select the file from your device. Everything runs locally in your browser — nothing gets uploaded to any server.</p>
       </div>
 
       <label class="drop" id="drop">
